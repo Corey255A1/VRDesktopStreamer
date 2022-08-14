@@ -43,7 +43,7 @@ const id = setInterval(function(){
   screen_regions.forEach((region, idx)=>{
     const screen = screen_manager.CaptureScreen(idx);
     websocketClients.forEach((client)=>{
-      client.send(JSON.stringify({cmd:"update",screen:{x:region.x, y:region.y, width:region.width, height:region.height, image:screen}}));
+      client.send(JSON.stringify({cmd:"update", screen:{x:region.x, y:region.y}, region:{x:region.x, y:region.y, width:region.width, height:region.height, image:screen}}));
     })
   })
 },100);

@@ -14,16 +14,35 @@ import {
     ICanvasRenderingContext
 } from "babylonjs";
 export enum ImageRenderStatus {READY, DECODING, DECODED }
+export class Region{
+    public Left:number;
+    public Top:number;
+    public Width:number;
+    public Height:number;
+    constructor(x:number, y:number, width:number, height:number){
+        this.Left = x;
+        this.Top = y;
+        this.Width = width;
+        this.Height = height;
+    }
+    get Right():number{
+        return this.Left + this.Width;
+    }
+    get Bottom():number{
+        return this.Top + this.Height;
+    }
+    public InRegion(x:number, y:number):boolean{
+        return (x >= this.Left && x <= this.Right && y >= this.Top && y <= this.Bottom);
+    }
+}
 export class VRScreenObject{
 
 
     private _image_element:HTMLImageElement;
     private _status:ImageRenderStatus;
     private _scene:Scene;
-    private _x:number;
-    private _y:number;
-    private _width:number;
-    private _height:number;
+    private _screen_region:Region;
+    private _image_update_region:Region;
     
     private _context:ICanvasRenderingContext;
     private _texture:DynamicTexture;
@@ -33,27 +52,25 @@ export class VRScreenObject{
         this._image_element = document.createElement('img') as HTMLImageElement;
         
         this._status = ImageRenderStatus.READY;
-        this._x = x;
-        this._y = y;
-        this._width = width;
-        this._height = height;
+        this._screen_region = new Region(x,y,width,height);
+        this._image_update_region = new Region(0,0,0,0);
         this._scene = scene;
         
         this._image_element.addEventListener('load',()=>{
             this._status = ImageRenderStatus.DECODED;
         });
 
-        const scaledWidth = this._width/500;
-        const scaledHeight = this._height/500;
+        const scaledWidth = this.Width/500;
+        const scaledHeight = this.Height/500;
 
         this._mesh = MeshBuilder.CreatePlane("screen1", {width:scaledWidth, height:scaledHeight}, this._scene);
         this._mesh.rotate(Axis.Y, Math.PI);
-        this._mesh.position.x = -(this._x/500);
+        this._mesh.position.x = -(this.X/500);
         this._mesh.position.y = 2;
 
 
-        this._texture = new DynamicTexture("stexture:" + this._x + ":" + this._y, {width:1920, height:1080}, this._scene);
-        const material: StandardMaterial = new StandardMaterial('smaterial:'+ this._x + ":" + this._y, this._scene);
+        this._texture = new DynamicTexture("stexture:" + this.X + ":" + this.Y, {width:this.Width, height:this.Height}, this._scene);
+        const material: StandardMaterial = new StandardMaterial('smaterial:'+ this.X + ":" + this.Y, this._scene);
         material.diffuseTexture = this._texture;
         material.specularColor = new Color3(1,1,1);
         material.emissiveColor = new Color3(1,1,1);
@@ -64,6 +81,11 @@ export class VRScreenObject{
         this._context = this._texture.getContext();
     }
 
+    get X(){ return this._screen_region.Left }
+    get Y(){ return this._screen_region.Top }
+    get Width(){ return this._screen_region.Width }
+    get Height(){ return this._screen_region.Height }
+
     get Mesh():Mesh{
         return this._mesh;
     }
@@ -72,16 +94,31 @@ export class VRScreenObject{
         return this._status;
     }
 
-    set ImageBuffer(base64Image:string){
+    updateImageBuffer(x:number, y:number, width:number, height:number, base64Image:string){
         this._image_element.src = 'data:image/jpeg;base64, ' + base64Image;
+        this._image_update_region.Left = x - this.X;
+        this._image_update_region.Top = y - this.Y;
+        this._image_update_region.Width = width;
+        this._image_update_region.Height = height;
         this._status = ImageRenderStatus.DECODING;
     }
 
     update(){
         if(this._status != ImageRenderStatus.DECODED){ return; }
 
-        this._context.clearRect(0,0,1920,1080);
-        this._context.drawImage(this._image_element, 0, 0, 1920, 1080);
+        this._context.clearRect(
+            this._image_update_region.Left,
+            this._image_update_region.Top,
+            this._image_update_region.Width,
+            this._image_update_region.Height
+        );
+        this._context.drawImage(
+            this._image_element, 
+            this._image_update_region.Left,
+            this._image_update_region.Top,
+            this._image_update_region.Width,
+            this._image_update_region.Height
+        );
         this._texture.update();
         this._status = ImageRenderStatus.READY
     }

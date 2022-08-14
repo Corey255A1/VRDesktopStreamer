@@ -61,7 +61,7 @@ class VRDesktop{
                 case "update":{
                     const screen = this._screens.get(jdata.screen.x+":"+jdata.screen.y);
                     if(screen.ImageStatus === ImageRenderStatus.READY){
-                        screen.ImageBuffer = jdata.screen.image;
+                        screen.updateImageBuffer(jdata.region.x, jdata.region.y, jdata.region.width, jdata.region.height, jdata.region.image);
                     }
                 }break;
             }             
