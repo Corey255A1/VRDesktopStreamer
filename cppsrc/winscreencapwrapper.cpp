@@ -4,9 +4,9 @@
 Napi::Object WinScreenCapWrapper::Init(Napi::Env env, Napi::Object exports) {
     // This method is used to hook the accessor and method callbacks
     Napi::Function func = DefineClass(env, "WinScreenCap", {
+        InstanceMethod<&WinScreenCapWrapper::GetScreenInfo>("GetScreenInfo", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
         InstanceMethod<&WinScreenCapWrapper::GetScreenCount>("GetScreenCount", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
-        InstanceMethod<&WinScreenCapWrapper::CaptureScreen>("CaptureScreen", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
-        InstanceMethod<&WinScreenCapWrapper::SetValue>("SetValue", static_cast<napi_property_attributes>(napi_writable | napi_configurable))
+        InstanceMethod<&WinScreenCapWrapper::CaptureScreen>("CaptureScreen", static_cast<napi_property_attributes>(napi_writable | napi_configurable))
     });
 
     Napi::FunctionReference* constructor = new Napi::FunctionReference();
@@ -34,14 +34,30 @@ WinScreenCapWrapper::WinScreenCapWrapper(const Napi::CallbackInfo& info) :
     Napi::ObjectWrap<WinScreenCapWrapper>(info),_b64_converter(1920*1080) {
     Napi::Env env = info.Env();
 
-    // ...
-    Napi::Number value = info[0].As<Napi::Number>();
-    this->_value = value.DoubleValue();
 
+    //Gather the list of displays and positions
     std::vector<std::unique_ptr<WinScreenCap::DisplayInfo>> displays = WinScreenCap::WinScreenCap::GetDisplayInfo();
     for (auto& di : displays) {
         _screen_regions.push_back(new WinScreenCap::WinScreenCap(di->x,  di->y, di->width,  di->height));
     }
+}
+
+Napi::Value WinScreenCapWrapper::GetScreenInfo(const Napi::CallbackInfo& info){
+    Napi::Env env = info.Env();
+
+    Napi::Array screen_list = Napi::Array::New(info.Env(), _screen_regions.size());
+    int idx = 0;
+    for(auto& screen : _screen_regions){
+        Napi::Object screen_info = Napi::Object::New(info.Env());
+        screen_info.Set("x", screen->Left());
+        screen_info.Set("y", screen->Top());
+        screen_info.Set("width", screen->Width());
+        screen_info.Set("height", screen->Height());
+        screen_list[idx++] = screen_info;
+
+    }
+
+    return screen_list;
 }
 
 Napi::Value WinScreenCapWrapper::GetScreenCount(const Napi::CallbackInfo& info){
@@ -60,13 +76,4 @@ Napi::Value WinScreenCapWrapper::CaptureScreen(const Napi::CallbackInfo& info){
     screen_capper->Compress();
     const char* b64 = _b64_converter.Convert(screen_capper->JpegBuffer(), screen_capper->JpegSize());
     return Napi::String::New(env, b64);
-}
-
-
-Napi::Value WinScreenCapWrapper::SetValue(const Napi::CallbackInfo& info){
-    Napi::Env env = info.Env();
-    // ...
-    Napi::Number value = info[0].As<Napi::Number>();
-    this->_value = value.DoubleValue();
-    return this->GetScreenCount(info);
 }

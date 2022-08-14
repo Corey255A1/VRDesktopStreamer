@@ -10,8 +10,7 @@ class WinScreenCapWrapper : public Napi::ObjectWrap<WinScreenCapWrapper> {
   private:
     std::vector<WinScreenCap::WinScreenCap*> _screen_regions;
     Utils::Base64Converter _b64_converter;
-    double _value;
+    Napi::Value GetScreenInfo(const Napi::CallbackInfo& info);
     Napi::Value GetScreenCount(const Napi::CallbackInfo& info);
     Napi::Value CaptureScreen(const Napi::CallbackInfo& info);
-    Napi::Value SetValue(const Napi::CallbackInfo& info);
 };

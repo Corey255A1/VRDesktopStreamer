@@ -4,7 +4,10 @@ const websocket = require('ws');
 
 const winscreencap = require('./build/Release/winscreencap');
 
-const test = new winscreencap.WinScreenCap(1);
+const screen_manager = new winscreencap.WinScreenCap();
+
+const screen_regions = screen_manager.GetScreenInfo();
+console.log(screen_regions);
 
 
 // const server = https.createServer({
@@ -22,24 +25,26 @@ const websocketClients = new Set();
 
 const wss = new websocket.WebSocketServer({ server });
 
-wss.on('connection', function connection(ws) {
-  websocketClients.add(ws);
-  ws.on('message', function message(data) {
+wss.on('connection', function connection(client) {
+  websocketClients.add(client);
+  client.on('message', function message(data) {
     console.log('received: %s', data);
   });
-  ws.on('close',function(){
-    websocketClients.delete(ws);
-  })
+  client.on('close',function close(){
+    websocketClients.delete(client);
+  });
+
+  client.send(JSON.stringify({cmd:"init",screens:screen_regions}));
+
+
 });
 
-let rightScreen = null;
-let leftScreen = null;
 const id = setInterval(function(){
-  rightScreen = test.CaptureScreen(0);
-  leftScreen = test.CaptureScreen(1);
-  websocketClients.forEach((client)=>{
-    client.send(JSON.stringify({x:0, y:0, image:rightScreen}));
-    client.send(JSON.stringify({x:-1920, y:0, image:leftScreen}));
+  screen_regions.forEach((region, idx)=>{
+    const screen = screen_manager.CaptureScreen(idx);
+    websocketClients.forEach((client)=>{
+      client.send(JSON.stringify({cmd:"update",screen:{x:region.x, y:region.y, width:region.width, height:region.height, image:screen}}));
+    })
   })
 },100);
 
