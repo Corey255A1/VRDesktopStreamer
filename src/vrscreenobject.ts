@@ -63,10 +63,35 @@ export class VRScreenObject{
         const scaledWidth = this.Width/500;
         const scaledHeight = this.Height/500;
 
-        this._mesh = MeshBuilder.CreatePlane("screen1", {width:scaledWidth, height:scaledHeight}, this._scene);
-        this._mesh.rotate(Axis.Y, Math.PI);
-        this._mesh.position.x = -(this.X/500);
+        //Plane Mesh
+        //Size the width and height of the mesh, scaled to the actual pixels
+        // this._mesh = MeshBuilder.CreatePlane("screen1", {width:scaledWidth, height:scaledHeight}, this._scene);
+        // this._mesh.rotate(Axis.Y, Math.PI);
+        // this._mesh.position.x = -(this.X/500);
+        // this._mesh.position.y = 2;
+
+
+        //Arch Mesh
+        //Calculate the curve segment length
+        //Full Circle 1920*4 = 7680
+        //20 Segments for full circle
+        //1920/5
+        const segment_start = Math.floor((this.X / 7680)*20);
+        const segment_end = Math.floor((this.Width / 7680)*20)
+        const screen_arc = [];
+        for(let i=segment_start;i<segment_end; i++){
+            screen_arc.push(new Vector3(Math.cos(i*Math.PI/10), Math.sin(i*Math.PI/10),0));
+        }
+    
+        const extrusion_path = [
+                new Vector3(0, 0, 0),
+                new Vector3(0, this.Height/this.Width, 0),
+        ];
+        
+        
+        this._mesh = MeshBuilder.ExtrudeShape("screen", {shape: screen_arc, path: extrusion_path, sideOrientation: BABYLON.Mesh.BACKSIDE}, this._scene);
         this._mesh.position.y = 2;
+
 
 
         this._texture = new DynamicTexture("stexture:" + this.X + ":" + this.Y, {width:this.Width, height:this.Height}, this._scene);
