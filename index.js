@@ -46,7 +46,7 @@ const id = setInterval(function(){
       client.send(JSON.stringify({cmd:"update", screen:{x:region.x, y:region.y}, region:{x:region.x, y:region.y, width:region.width, height:region.height, image:screen}}));
     })
   })
-},100);
+},50);
 
 
 server.listen(8081);

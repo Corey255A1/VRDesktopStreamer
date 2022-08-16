@@ -10,7 +10,8 @@ import {
     Axis,
     DynamicTexture,
     StandardMaterial,
-    Color3
+    Color3,
+    WebXRState
 } from "babylonjs";
 import { Material } from "babylonjs/Materials/material";
 import { ImageRenderStatus, VRScreenObject } from "./vrscreenobject";
@@ -83,7 +84,22 @@ class VRDesktop{
     async InitializeVR(){
         try {
             var defaultXRExperience = await this._scene.createDefaultXRExperienceAsync();
-            
+            defaultXRExperience.baseExperience.onStateChangedObservable.add((state) => {
+                switch (state) {
+                    case WebXRState.IN_XR: 
+                    defaultXRExperience.baseExperience.camera.position = Vector3.Zero();
+                    break;
+                        // XR is initialized and already submitted one frame
+                    case WebXRState.ENTERING_XR: 
+                        
+                        break;
+                        // xr is being initialized, enter XR request was made
+                    case WebXRState.EXITING_XR: break;
+                        // xr exit request was made. not yet done.
+                    case WebXRState.NOT_IN_XR: break;
+                        // self explanatory - either out or not yet in XR
+                }
+            })
         } catch (e) {
             console.log(e);
         }

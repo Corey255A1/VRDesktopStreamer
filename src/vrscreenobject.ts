@@ -76,10 +76,10 @@ export class VRScreenObject{
         //Full Circle 1920*4 = 7680
         //20 Segments for full circle
         //1920/5
-        const segment_start = Math.floor((this.X / 7680)*20);
-        const segment_end = Math.floor((this.Width / 7680)*20)
+        const segment_start = Math.round((this.X / 7680)*20);
+        const segment_end = Math.round(((this.X+this.Width) / 7680)*20)
         const screen_arc = [];
-        for(let i=segment_start;i<segment_end; i++){
+        for(let i=segment_start;i<=segment_end; i++){
             screen_arc.push(new Vector3(Math.cos(i*Math.PI/10), Math.sin(i*Math.PI/10),0));
         }
     
@@ -90,7 +90,7 @@ export class VRScreenObject{
         
         
         this._mesh = MeshBuilder.ExtrudeShape("screen", {shape: screen_arc, path: extrusion_path, sideOrientation: BABYLON.Mesh.BACKSIDE}, this._scene);
-        this._mesh.position.y = 2;
+        this._mesh.position.y = -(this.Height/this.Width/2);
 
 
 
