@@ -35,11 +35,47 @@ export class Region{
         return (x >= this.Left && x <= this.Right && y >= this.Top && y <= this.Bottom);
     }
 }
+
+export class ImageRegion extends Region{
+    private _element:HTMLImageElement;
+    private _status:ImageRenderStatus;
+
+    constructor(){
+        super(0,0,0,0);
+        this._element = document.createElement('img') as HTMLImageElement;
+        this._status = ImageRenderStatus.READY;
+        this._element.addEventListener('load',()=>{
+            this._status = ImageRenderStatus.DECODED;
+        });
+    }
+
+    public get Image():HTMLImageElement{
+        return this._element;
+    }
+
+    public get Status():ImageRenderStatus{
+        return this._status;
+    }
+
+    public Reset(){
+        this._status = ImageRenderStatus.READY;
+    }
+
+    public UpdateImageBuffer(x:number, y:number, width:number, height:number, base64Image:string){
+        this._element.src = 'data:image/jpeg;base64, ' + base64Image;
+        this.Left = x;
+        this.Top = y;
+        this.Width = width;
+        this.Height = height;
+        this._status = ImageRenderStatus.DECODING;
+    }
+
+}
+
 export class VRScreenObject{
 
-
-    private _image_element:HTMLImageElement;
-    private _status:ImageRenderStatus;
+    private _image_update_buffer:Array<ImageRegion>;
+    private _image_update_pending:Array<ImageRegion>;
     private _scene:Scene;
     private _screen_region:Region;
     private _image_update_region:Region;
@@ -48,17 +84,16 @@ export class VRScreenObject{
     private _texture:DynamicTexture;
     private _mesh:Mesh;
 
-    constructor(scene:Scene, x:number, y:number, width:number, height:number){
-        this._image_element = document.createElement('img') as HTMLImageElement;
+    constructor(scene:Scene, x:number, y:number, width:number, height:number){       
         
-        this._status = ImageRenderStatus.READY;
         this._screen_region = new Region(x,y,width,height);
         this._image_update_region = new Region(0,0,0,0);
         this._scene = scene;
-        
-        this._image_element.addEventListener('load',()=>{
-            this._status = ImageRenderStatus.DECODED;
-        });
+        this._image_update_pending = new Array<ImageRegion>();
+        this._image_update_buffer = new Array<ImageRegion>();
+        for(let i=0;i<100;i++){
+            this._image_update_buffer.push(new ImageRegion());
+        }
 
         const scaledWidth = this.Width/500;
         const scaledHeight = this.Height/500;
@@ -115,37 +150,36 @@ export class VRScreenObject{
         return this._mesh;
     }
 
-    get ImageStatus():ImageRenderStatus{
-        return this._status;
-    }
-
     updateImageBuffer(x:number, y:number, width:number, height:number, base64Image:string){
-        this._image_element.src = 'data:image/jpeg;base64, ' + base64Image;
-        this._image_update_region.Left = x - this.X;
-        this._image_update_region.Top = y - this.Y;
-        this._image_update_region.Width = width;
-        this._image_update_region.Height = height;
-        this._status = ImageRenderStatus.DECODING;
+        let image = this._image_update_buffer.pop();
+        image.UpdateImageBuffer(x,y,width,height,base64Image);
+        this._image_update_pending.push(image);
     }
 
     update(){
-        if(this._status != ImageRenderStatus.DECODED){ return; }
+        // this._context.clearRect(
+        //     this._image_update_region.Left,
+        //     this._image_update_region.Top,
+        //     this._image_update_region.Width,
+        //     this._image_update_region.Height
+        // );
+        for(let i=0; i<this._image_update_pending.length; i++){
+            let img = this._image_update_pending[i];
+            if(img.Status == ImageRenderStatus.DECODED){
+                this._context.drawImage(
+                    img.Image, 
+                    img.Left,
+                    img.Top,
+                    img.Width,
+                    img.Height
+                );
+                img.Reset();
+                this._image_update_pending.splice(i,1);
+                this._image_update_buffer.push(img);
+            }
+        }
 
-        this._context.clearRect(
-            this._image_update_region.Left,
-            this._image_update_region.Top,
-            this._image_update_region.Width,
-            this._image_update_region.Height
-        );
-        this._context.drawImage(
-            this._image_element, 
-            this._image_update_region.Left,
-            this._image_update_region.Top,
-            this._image_update_region.Width,
-            this._image_update_region.Height
-        );
         this._texture.update();
-        this._status = ImageRenderStatus.READY
     }
 
 }

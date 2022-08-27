@@ -40,13 +40,16 @@ wss.on('connection', function connection(client) {
 });
 
 const id = setInterval(function(){
-  screen_regions.forEach((region, idx)=>{
-    const screen = screen_manager.CaptureScreen(idx);
-    websocketClients.forEach((client)=>{
-      client.send(JSON.stringify({cmd:"update", screen:{x:region.x, y:region.y}, region:{x:region.x, y:region.y, width:region.width, height:region.height, image:screen}}));
-    })
-  })
-},50);
+  screen_regions.forEach((screen, idx)=>{
+    const change_list = screen_manager.CaptureScreen(idx);
+    if(change_list.length==0){return;}
+    change_list.forEach((region)=>{
+      websocketClients.forEach((client)=>{
+        client.send(JSON.stringify({cmd:"update", screen:{x:screen.x, y:screen.y}, region:{x:region.x, y:region.y, width:region.width, height:region.height, image:region.image}}));
+      });
+    });
+  });
+},100);
 
 
 server.listen(8081);

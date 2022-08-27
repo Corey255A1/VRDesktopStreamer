@@ -11,7 +11,8 @@ import {
     DynamicTexture,
     StandardMaterial,
     Color3,
-    WebXRState
+    WebXRState,
+    PhotoDome
 } from "babylonjs";
 import { Material } from "babylonjs/Materials/material";
 import { ImageRenderStatus, VRScreenObject } from "./vrscreenobject";
@@ -35,9 +36,16 @@ class VRDesktop{
         let engine = new Engine(canvas, true);
         this._scene = new Scene(engine);
 
+        let photo_dome = new PhotoDome("dome","test_dome_hq.jpg",
+        {
+            resolution: 32,
+            size: 1000,
+            useDirectMapping: true
+        },
+        this._scene);
         let camera: ArcRotateCamera = new ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 2, 2, Vector3.Zero(), this._scene);
         camera.attachControl(canvas, true);
-        camera.target.y = 2;
+        camera.target.y = 0;
         let light1: HemisphericLight = new HemisphericLight("light1", new Vector3(1, 1, 0), this._scene);
 
 
@@ -61,9 +69,7 @@ class VRDesktop{
                 }break;
                 case "update":{
                     const screen = this._screens.get(jdata.screen.x+":"+jdata.screen.y);
-                    if(screen.ImageStatus === ImageRenderStatus.READY){
-                        screen.updateImageBuffer(jdata.region.x, jdata.region.y, jdata.region.width, jdata.region.height, jdata.region.image);
-                    }
+                    screen.updateImageBuffer(jdata.region.x, jdata.region.y, jdata.region.width, jdata.region.height, jdata.region.image);
                 }break;
             }             
         });

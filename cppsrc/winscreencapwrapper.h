@@ -1,5 +1,6 @@
 #include <napi.h>
 #include "WinScreenCap.h"
+#include "ImageComparator.h"
 #include "Base64Converter.h"
 #include <vector>
 class WinScreenCapWrapper : public Napi::ObjectWrap<WinScreenCapWrapper> {
@@ -9,6 +10,7 @@ class WinScreenCapWrapper : public Napi::ObjectWrap<WinScreenCapWrapper> {
 
   private:
     std::vector<WinScreenCap::WinScreenCap*> _screen_regions;
+    std::vector<WinScreenCap::ImageComparator*> _screen_comparators;
     Utils::Base64Converter _b64_converter;
     Napi::Value GetScreenInfo(const Napi::CallbackInfo& info);
     Napi::Value GetScreenCount(const Napi::CallbackInfo& info);

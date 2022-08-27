@@ -39,6 +39,7 @@ WinScreenCapWrapper::WinScreenCapWrapper(const Napi::CallbackInfo& info) :
     std::vector<std::unique_ptr<WinScreenCap::DisplayInfo>> displays = WinScreenCap::WinScreenCap::GetDisplayInfo();
     for (auto& di : displays) {
         _screen_regions.push_back(new WinScreenCap::WinScreenCap(di->x,  di->y, di->width,  di->height));
+        _screen_comparators.push_back(new WinScreenCap::ImageComparator(di->width, di->height, 10, 10));
     }
 }
 
@@ -72,8 +73,21 @@ Napi::Value WinScreenCapWrapper::CaptureScreen(const Napi::CallbackInfo& info){
     if(screen_number < 0 && screen_number >= _screen_regions.size()) return env.Null();
 
     auto* screen_capper = _screen_regions[screen_number];
-    screen_capper->Capture();
-    screen_capper->Compress();
-    const char* b64 = _b64_converter.Convert(screen_capper->JpegBuffer(), screen_capper->JpegSize());
-    return Napi::String::New(env, b64);
+    auto* screen_comparator = _screen_comparators[screen_number];
+    screen_capper->Capture(screen_comparator->CurrentBuffer());
+    int difference_count = screen_comparator->GenerateDifferenceRegions();
+    screen_comparator->Swap();
+    Napi::Array change_regions = Napi::Array::New(info.Env(), difference_count);
+    int idx = 0;
+    for(int r=0; r<difference_count; r++){
+        Napi::Object screen_info = Napi::Object::New(info.Env());
+        auto* region = screen_comparator->Region(r);
+        screen_info.Set("x", region->X);
+        screen_info.Set("y", region->Y);
+        screen_info.Set("width", 192);//FORNOW
+        screen_info.Set("height", 108);
+        screen_info.Set("image",std::string(reinterpret_cast<const char*>(_b64_converter.Convert(region->Buffer.get(), region->ImageSize))));
+        change_regions[idx++] = screen_info;
+    }
+    return change_regions;
 }
